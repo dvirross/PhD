@@ -1,0 +1,857 @@
+%% ─────────────────────────────────────────────────────────────────────────────
+%% A 9-State Markov Chain Model for Semi-Fixed Menstruation Patterns:
+%% Stationary Distribution and Population Heterogeneity
+%%
+%% Author : Dvir Ross
+%% Target : Mathematics (MDPI)  –  Q1 Applied Probability / Statistics
+%% ─────────────────────────────────────────────────────────────────────────────
+\documentclass[12pt,a4paper]{article}
+
+%% ── Packages ─────────────────────────────────────────────────────────────────
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{microtype}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  citecolor=blue!60!black,
+  urlcolor=blue!60!black
+}
+
+\onehalfspacing
+
+%% ── Theorem environments ─────────────────────────────────────────────────────
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+%% ── Custom commands ──────────────────────────────────────────────────────────
+\newcommand{\piv}{\boldsymbol{\pi}}
+\newcommand{\mat}[1]{\mathbf{#1}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\haflaga}{\textit{Haflaga}}
+\newcommand{\dilug}{\textit{Dilug}}
+\newcommand{\onahbeinonis}{\textit{Onah Beinonis}}
+
+%% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+%% ── Title block ──────────────────────────────────────────────────────────────
+\title{\textbf{A 9-State Markov Chain Model for Semi-Fixed Menstruation Patterns:
+Stationary Distribution and Population Heterogeneity}}
+
+\author{%
+  Dvir Ross\\[4pt]
+  \small Department of Software Engineering and Computer Science,\\
+  \small Shenkar College of Engineering, Design and Art,\\
+  \small Ramat Gan, Israel\\[2pt]
+  \small \texttt{dvirross@shenkar.ac.il}
+}
+
+\date{}
+\maketitle
+
+%% ── Abstract ─────────────────────────────────────────────────────────────────
+\begin{abstract}
+\noindent
+Semi-fixed menstruation (\textit{veset hatzi kavu'a}) is a central construct in
+Jewish Halachic law governing pre-menstrual abstinence. A woman enters a semi-fixed
+state when two consecutive menstrual cycles fall within a consistent range of lengths;
+once in this state she is obligated to observe pre-menstrual abstinence on the expected
+day of onset unless her range excludes the liturgically significant days (day~30 and
+the monthly Halachic date). Despite its legal importance, the long-run probabilistic
+behaviour of semi-fixed menstruation has not previously been studied formally.
+
+We model the longitudinal dynamics of menstrual cycle lengths as a discrete-time,
+finite Markov chain with nine states, partitioned according to whether a cycle is the
+first, second, or third-or-later consecutive cycle within a semi-fixed stretch, and by
+whether the accumulated range is \emph{short} (maximum $<29$~days), \emph{normal}
+($29 \le L \le 31$~days), or \emph{long} (minimum $>31$~days). States $S_{31}$ and
+$S_{33}$ are the \emph{favourable} semi-fixed states in which no abstinence at day~30
+or at the monthly Halachic date is required.
+
+Using a Natural Family Planning (NFP) dataset of 1{,}554 menstrual cycles from 118
+clients (reduced to 1{,}221 cycles from 98 clients after excluding participants who
+had established a \haflaga{} fixed menstruation), we estimate the empirical transition
+matrix and derive the unique stationary distribution analytically via eigenvalue
+decomposition. The stationary probability of the two favourable states is
+$\pi_{S_{31}} + \pi_{S_{33}} \approx 8.94\%$, while the overall long-run probability
+of being in any semi-fixed state is approximately $63.19\%$.
+
+We further stratify clients into three groups based on their highest-attained
+semi-fixed sub-type and show, using Kruskal-Wallis tests followed by
+Bonferroni-corrected Dunn post-hoc comparisons, that the three groups differ
+significantly in their cycle-length distributions ($H = 386.03$,
+$p < 10^{-84}$). Group-specific sub-chain analyses reveal that $S_{31}$-prone
+clients reach their favourable state in $18.6\%$ of long-run cycles, while
+$S_{33}$-prone clients do so in $17.1\%$, both substantially above the
+population-average $8.94\%$. These results provide a rigorous probabilistic
+foundation for Halachic guidance and personalised cycle-based prediction tools.
+
+\medskip
+\noindent\textbf{Keywords:} Markov chain; stationary distribution; menstrual cycle;
+Halachic law; semi-fixed menstruation; natural family planning; applied probability;
+population heterogeneity
+\end{abstract}
+
+\newpage
+
+%% ─────────────────────────────────────────────────────────────────────────────
+\section{Introduction}
+\label{sec:intro}
+%% ─────────────────────────────────────────────────────────────────────────────
+
+The menstrual cycle is a complex biological process governed by the
+hypothalamic--pituitary--ovarian axis, with cycle lengths that vary both within
+and between individuals \citep{Treloar1967, Chiazze1968, Munster1992}.
+Accurate characterisation of this variability has applications in reproductive medicine,
+natural family planning (NFP), fertility treatment scheduling, and—in the context of
+the present work—Jewish religious law (Halacha).
+
+In Halachic law, the laws of \textit{Nidah} define periods of obligatory spousal
+separation following menstruation and govern the anticipation of the next onset.
+A central concept is the \emph{fixed menstruation} (\textit{veset kavu'a}): a
+pattern of onset sufficiently regular to impose anticipatory abstinence obligations.
+The literature distinguishes several types of fixed menstruation, including the
+\haflaga{} (three consecutive equal-length cycles), the \dilug{} (arithmetic
+progression of cycle lengths), and the weekly (\textit{hashavua}) patterns
+\citep{Ross2023stat, Ross2024reliability}.
+
+Among these, \emph{semi-fixed menstruation} (\textit{veset hatzi kavu'a})—triggered
+after two consecutive cycles whose lengths fall within a shared range—has received
+the least quantitative attention despite being, as our data confirm, the predominant
+long-run state. A woman in a semi-fixed state may be obligated to observe abstinence
+on day~30 of the cycle (counting from the most recent onset) and on the monthly
+Halachic date, unless her accumulated cycle-length range entirely excludes those days.
+This makes the sub-type of semi-fixed state she occupies legally and practically
+significant.
+
+\subsection*{Contributions and paper organisation}
+
+This paper makes the following contributions:
+\begin{enumerate}
+  \item We introduce a nine-state Markov chain that fully captures the
+        longitudinal semi-fixed menstruation dynamics, with a principled
+        state-space that encodes both the ordinal position within a stretch
+        and the range sub-type (Definition~\ref{def:states}).
+  \item We estimate the empirical transition matrix from a real NFP dataset,
+        derive the unique stationary distribution analytically (Proposition~\ref{prop:stationary}),
+        and validate it by Monte Carlo simulation.
+  \item We show that the long-run probability of being in a \emph{favourable}
+        semi-fixed state (no extra Halachic obligations) is $\approx 8.94\%$,
+        while that of being in \emph{any} semi-fixed state is $\approx 63.19\%$.
+  \item We identify significant population heterogeneity across three client
+        sub-groups and compute group-specific sub-chain stationary distributions
+        that support personalised Halachic guidance.
+\end{enumerate}
+
+The paper is organised as follows. Section~\ref{sec:background} provides the
+necessary Halachic and mathematical background. Section~\ref{sec:data} describes
+the dataset and pre-processing. Section~\ref{sec:model} defines the nine-state
+Markov chain and the state assignment algorithm. Section~\ref{sec:results} presents
+the transition matrix, stationary distribution, and hypothesis test results.
+Section~\ref{sec:discussion} discusses the implications and limitations.
+Section~\ref{sec:conclusion} concludes.
+
+%% ─────────────────────────────────────────────────────────────────────────────
+\section{Background}
+\label{sec:background}
+%% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Halachic Framework}
+\label{sec:halacha}
+
+The Halachic interval (\haflaga) between two consecutive menstrual onsets equals
+the calendar cycle length plus one, because Jewish law counts the day of onset as
+the first day of the new cycle rather than the last day of the preceding one.
+Throughout this paper we use the Halachic convention: if the calendar cycle length
+(from the end of menstrual flow onset to the next onset) is $L$~days, the Halachic
+\haflaga{} is $\tilde{L} = L + 1$.
+
+\begin{definition}[Semi-fixed menstruation]\label{def:semi-fixed}
+A woman establishes a semi-fixed menstruation (\textit{veset hatzi kavu'a}) when
+two consecutive Halachic cycle lengths $\tilde{L}_{n-1}$ and $\tilde{L}_{n}$ satisfy
+$[\min(\tilde{L}_{n-1},\tilde{L}_{n}),\, \max(\tilde{L}_{n-1},\tilde{L}_{n})]
+\subseteq \mathbb{Z}_{>0}$. The range $[r_{\min}, r_{\max}]$ defines her semi-fixed
+interval. She remains semi-fixed as long as each subsequent cycle length falls within
+this interval, which can only widen (absorb a new extreme) or be exited entirely (if
+the new length falls outside).
+\end{definition}
+
+Once semi-fixed, she must observe anticipatory abstinence on day~30 of the current
+cycle and on the day of the month corresponding to her last onset, unless both of
+these days fall strictly outside her semi-fixed interval. This motivates the distinction
+between sub-types:
+\begin{itemize}
+  \item \textbf{Short range} ($r_{\max} < 29$): day~30 and the monthly date both
+        fall outside the interval — \emph{no extra abstinence required}.
+  \item \textbf{Normal range} ($r_{\min} \le 30 \le r_{\max}$ or the interval
+        contains the monthly date): extra abstinence required on at least one day.
+  \item \textbf{Long range} ($r_{\min} > 31$): day~30 falls outside the interval,
+        relieving that obligation, but the monthly-date obligation may remain.
+\end{itemize}
+
+A woman exits the semi-fixed state when a new cycle length falls outside her current
+interval; she then restarts the two-cycle acquisition process.
+
+\subsection{Markov Chain Fundamentals}
+\label{sec:mc-background}
+
+A discrete-time, finite, homogeneous Markov chain is a stochastic process
+$\{X_n\}_{n \ge 1}$ over a state space $\mathcal{S} = \{s_1,\ldots,s_K\}$ satisfying
+the Markov property
+$\Pr(X_{n+1} = s_j \mid X_n = s_i, X_{n-1},\ldots) = p_{ij}$,
+where $\mat{P} = (p_{ij})$ is the $K \times K$ transition matrix with $p_{ij} \ge 0$
+and $\sum_j p_{ij} = 1$ for all $i$ \citep{Norris1997}.
+
+If the chain is irreducible and aperiodic, it possesses a unique stationary
+distribution $\piv = (\pi_1,\ldots,\pi_K)$ satisfying $\piv \mat{P} = \piv$,
+$\pi_k > 0$, $\sum_k \pi_k = 1$ \citep{KemenySnell1960}. In practice, $\piv$ is
+computed as the left eigenvector of $\mat{P}$ corresponding to the eigenvalue~1:
+\begin{equation}
+  \mat{P}^\top \piv = \piv, \qquad \|\piv\|_1 = 1.
+  \label{eq:stationary}
+\end{equation}
+
+%% ─────────────────────────────────────────────────────────────────────────────
+\section{Data and Pre-processing}
+\label{sec:data}
+%% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Dataset}
+
+We use an anonymised Natural Family Planning (NFP) dataset collected by certified
+NFP instructors. Each record corresponds to one menstrual cycle for one participant
+and includes the calendar cycle length, cycle number within the participant's
+observation period, and demographic variables (age, BMI, parity, etc.).
+
+The raw dataset contains 1{,}665 cycle records from 133 clients. After removing
+duplicate (ClientID, CycleNumber) pairs and a small number of records with known
+data anomalies (client~8107, cycles 45--53, identified during data collection),
+and restricting to participants with at least five recorded cycles to ensure
+sufficient longitudinal information, the cleaned dataset comprises \textbf{1{,}554
+cycles from 118 clients}, with a mean of $13.2$ cycles per client
+(median: 12, range: 5--45).
+
+\subsection{Halachic Cycle Length Convention}
+
+Following Definition~\ref{def:semi-fixed}, all analyses use the Halachic
+cycle length $\tilde{L} = L + 1$. Descriptive statistics of $\tilde{L}$ are
+shown in Table~\ref{tab:descriptives}.
+
+\begin{table}[ht]
+\centering
+\caption{Descriptive statistics of the Halachic cycle length $\tilde{L}$
+         across the filtered dataset ($n = 1{,}554$ cycles, 118 clients).}
+\label{tab:descriptives}
+\begin{tabular}{lc}
+\toprule
+\textbf{Statistic} & \textbf{Value} \\
+\midrule
+Number of cycles & 1{,}554 \\
+Number of clients & 118 \\
+Mean & 30.27 days \\
+Standard deviation & 3.86 days \\
+Median & 29.50 days \\
+Q1 -- Q3 & 28 -- 32 days \\
+Minimum & 19 days \\
+Maximum & 55 days \\
+Skewness & 1.38 \\
+Kurtosis (excess) & 5.71 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The distribution is right-skewed (skewness $= 1.38$) and leptokurtic
+(excess kurtosis $= 5.71$), consistent with prior studies of menstrual cycle
+length variability \citep{Guo2006, Symul2019}. A Shapiro-Wilk test confirms
+non-normality ($W = 0.924$, $p < 10^{-30}$).
+
+\subsection{Exclusion of Haflaga-Fixed Participants}
+
+Participants who establish a \haflaga{} fixed menstruation (three consecutive
+equal Halachic cycle lengths) operate under a different Halachic regime and
+their cycles would introduce structural autocorrelations that violate the intended
+semi-fixed dynamics. We therefore exclude the 20 participants who exhibited at
+least one \haflaga{} event, yielding the \textbf{analysis dataset of 1{,}221 cycles
+from 98 clients} used for all subsequent Markov chain modelling.
+
+%% ─────────────────────────────────────────────────────────────────────────────
+\section{The 9-State Markov Chain Model}
+\label{sec:model}
+%% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{State Space}
+\label{sec:states}
+
+\begin{definition}[State space $\mathcal{S}$]\label{def:states}
+We define nine states $\mathcal{S} = \{S_{11}, S_{12}, S_{13},
+S_{21}, S_{22}, S_{23}, S_{31}, S_{32}, S_{33}\}$ for each cycle, where
+the first index encodes the \emph{ordinal position} within the current stretch
+and the second index encodes the \emph{range sub-type}:
+\begin{align*}
+\text{First index:} \quad
+  &1 \Rightarrow \text{first cycle of a new stretch (semi-fixed interval resets)},\\
+  &2 \Rightarrow \text{second cycle (semi-fixed interval being formed)},\\
+  &3 \Rightarrow \text{third or later cycle (semi-fixed state achieved)}.\\[6pt]
+\text{Second index:} \quad
+  &1 \Rightarrow r_{\max} < 29 \quad (\text{short range}),\\
+  &2 \Rightarrow 29 \le r_{\min} \text{ or } r_{\max} \le 31 \quad (\text{normal range}),\\
+  &3 \Rightarrow r_{\min} > 31 \quad (\text{long range}).
+\end{align*}
+\end{definition}
+
+States $S_{3\bullet}$ are the \emph{semi-fixed states}; among them, $S_{31}$ and
+$S_{33}$ are the \emph{favourable} states requiring no additional abstinence at
+day~30 or at the monthly Halachic date.
+
+\subsection{State Assignment Algorithm}
+\label{sec:algorithm}
+
+Algorithm~\ref{alg:state} describes the sequential state assignment for a sequence
+of Halachic cycle lengths $(\tilde{L}_1, \tilde{L}_2, \ldots)$ belonging to one client.
+
+\begin{algorithm}[ht]
+\caption{Semi-fixed state assignment for one participant}
+\label{alg:state}
+\begin{algorithmic}[1]
+\Require Sequence $(\tilde{L}_1,\ldots,\tilde{L}_N)$, threshold $\theta_{\text{short}}=29$,
+         $\theta_{\text{long}}=31$
+\Ensure State sequence $(X_1,\ldots,X_N)$
+\State $r_{\min} \gets \tilde{L}_1$; $r_{\max} \gets \tilde{L}_1$;
+       $\text{sf} \gets 0$ \Comment{$\text{sf}=1$: currently semi-fixed}
+\State $X_1 \gets \textsc{SubType}(r_{\min}, r_{\max}, \text{prefix}=\text{S1})$
+\For{$i = 2, 3, \ldots, N$}
+  \If{$\text{sf}=1$ \textbf{and} $(\tilde{L}_i < r_{\min}$ \textbf{or} $\tilde{L}_i > r_{\max})$}
+    \State \Comment{Exit semi-fixed: range broken, restart}
+    \State $r_{\min} \gets \tilde{L}_i$; $r_{\max} \gets \tilde{L}_i$; $\text{sf} \gets 0$
+    \State $X_i \gets \textsc{SubType}(r_{\min}, r_{\max}, \text{prefix}=\text{S1})$
+  \ElsIf{$i=2$ \textbf{or} ($\text{sf}=0$ \textbf{and} $X_{i-2}$ starts with S3)}
+    \State \Comment{Second cycle of a new stretch}
+    \State $r_{\min} \gets \min(r_{\min}, \tilde{L}_i)$; $r_{\max} \gets \max(r_{\max}, \tilde{L}_i)$; $\text{sf} \gets 0$
+    \State $X_i \gets \textsc{SubType}(r_{\min}, r_{\max}, \text{prefix}=\text{S2})$
+  \Else
+    \State \Comment{Third+ cycle in range, or extending semi-fixed}
+    \State $r_{\min} \gets \min(r_{\min}, \tilde{L}_i)$; $r_{\max} \gets \max(r_{\max}, \tilde{L}_i)$; $\text{sf} \gets 1$
+    \State $X_i \gets \textsc{SubType}(r_{\min}, r_{\max}, \text{prefix}=\text{S3})$
+  \EndIf
+\EndFor
+\Procedure{SubType}{$r_{\min}, r_{\max}, \text{prefix}$}
+  \If{$r_{\max} < \theta_{\text{short}}$} \Return prefix$+$``1''
+  \ElsIf{$r_{\min} > \theta_{\text{long}}$} \Return prefix$+$``3''
+  \Else\ \Return prefix$+$``2''
+  \EndIf
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{remark}
+The range $[r_{\min}, r_{\max}]$ is monotonically widening within any stretch: once
+a cycle length extends the range, it cannot subsequently shrink. This ensures that the
+sub-type index can only transition $1 \to 2$ or $2 \to 3$ (and never backwards) within
+a single stretch, which reflects the Halachic principle that an established semi-fixed
+interval persists until explicitly broken.
+\end{remark}
+
+\subsection{State Diagram}
+\label{sec:diagram}
+
+Figure~\ref{fig:state-diagram} shows the directed graph of the estimated Markov chain.
+The structure reveals two absorbing-like regions: once a participant enters a $S_{3\bullet}$
+state, the chain either self-loops (with high probability) or returns to a $S_{1\bullet}$
+state, never going directly to $S_{2\bullet}$. Similarly, $S_{1\bullet}$ states always
+transition to $S_{2\bullet}$ states (forming a two-step acquisition path into
+$S_{3\bullet}$), and $S_{2\bullet}$ states always transition to $S_{3\bullet}$ states.
+This block structure is a direct consequence of the Halachic definition.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  state/.style={draw, circle, minimum size=1.1cm, thick, fill=white},
+  sfstate/.style={draw, circle, minimum size=1.1cm, thick, fill=green!12},
+  favstate/.style={draw, circle, minimum size=1.1cm, thick, fill=green!35, line width=1.5pt},
+  bend angle=18,
+  auto,
+  >=Stealth
+]
+
+%% S1x nodes (left column)
+\node[state]   (S11) at (0,4)    {$S_{11}$};
+\node[state]   (S12) at (0,2)    {$S_{12}$};
+\node[state]   (S13) at (0,0)    {$S_{13}$};
+
+%% S2x nodes (middle column)
+\node[state]   (S21) at (3.5,4)  {$S_{21}$};
+\node[state]   (S22) at (3.5,2)  {$S_{22}$};
+\node[state]   (S23) at (3.5,0)  {$S_{23}$};
+
+%% S3x nodes (right column) — semi-fixed
+\node[favstate](S31) at (7,4)    {$S_{31}$};
+\node[sfstate] (S32) at (7,2)    {$S_{32}$};
+\node[favstate](S33) at (7,0)    {$S_{33}$};
+
+%% S1 → S2 transitions
+\draw[->] (S11) -- node[above,sloped]{$0.53$} (S21);
+\draw[->] (S11) -- node[above,sloped,pos=0.4]{$0.47$} (S22);
+\draw[->] (S12) -- node[above]{$1.00$} (S22);
+\draw[->] (S13) -- node[above,sloped,pos=0.6]{$0.56$} (S22);
+\draw[->] (S13) -- node[above,sloped]{$0.44$} (S23);
+
+%% S2 → S3 transitions
+\draw[->] (S21) -- node[above]{$0.57$} (S31);
+\draw[->] (S21) -- node[above,sloped,pos=0.4]{$0.43$} (S32);
+\draw[->] (S22) -- node[above]{$1.00$} (S32);
+\draw[->] (S23) -- node[above,sloped,pos=0.6]{$0.23$} (S32);
+\draw[->] (S23) -- node[above]{$0.78$} (S33);
+
+%% S3 → S1 (exits from semi-fixed)
+\draw[->, bend right=38] (S31) edge node[above,sloped,pos=0.55]{$0.30$} (S11);
+\draw[->, bend left=45]  (S31) edge node[below,sloped,pos=0.55]{$0.27$} (S12);
+\draw[->, bend right=35] (S32) edge node[above,sloped,pos=0.45]{$0.12$} (S11);
+\draw[->, bend right=28] (S32) edge node[below,sloped]{$0.05$} (S12);
+\draw[->, bend right=22] (S32) edge node[below,sloped]{$0.09$} (S13);
+\draw[->, bend left=45]  (S33) edge node[above,sloped,pos=0.45]{$0.02$} (S11);
+\draw[->, bend left=38]  (S33) edge node[below,sloped,pos=0.4]{$0.17$} (S12);
+\draw[->, bend left=32]  (S33) edge node[below,sloped]{$0.24$} (S13);
+
+%% Self-loops in S3
+\draw[->, loop right] (S31) edge node[right]{$0.43$} (S31);
+\draw[->, loop right] (S32) edge node[right]{$0.74$} (S32);
+\draw[->, loop right] (S33) edge node[right]{$0.58$} (S33);
+
+%% Legend
+\node[favstate, minimum size=0.6cm] at (2.3,-2.1) {};
+\node[anchor=west, font=\footnotesize] at (2.8,-2.1)
+  {Favourable semi-fixed ($S_{31}$, $S_{33}$)};
+\node[sfstate, minimum size=0.6cm]  at (2.3,-2.8) {};
+\node[anchor=west, font=\footnotesize] at (2.8,-2.8)
+  {Normal semi-fixed ($S_{32}$)};
+\node[state, minimum size=0.6cm]    at (2.3,-3.5) {};
+\node[anchor=west, font=\footnotesize] at (2.8,-3.5)
+  {Non-semi-fixed ($S_{1\bullet}$, $S_{2\bullet}$)};
+
+\end{tikzpicture}
+\caption{State transition diagram of the 9-state Markov chain (estimated transition
+probabilities shown on edges; values $\le 0.01$ omitted for clarity).
+Double-bordered states ($S_{31}$, $S_{33}$) are the \emph{favourable} semi-fixed
+states in which no additional pre-menstrual abstinence is required.}
+\label{fig:state-diagram}
+\end{figure}
+
+\subsection{Transition Matrix Estimation}
+
+We estimate the transition matrix $\mat{P}$ from observed consecutive-cycle pairs
+within each participant's sequence (transitions across participant boundaries are
+excluded). Let $n_{ij}$ denote the observed count of transitions from state $s_i$
+to state $s_j$; the maximum-likelihood estimate of each row is
+\[
+  \hat{p}_{ij} = \frac{n_{ij}}{\displaystyle\sum_k n_{ik}}.
+\]
+Table~\ref{tab:transition-counts} lists all non-zero transition counts; the
+corresponding probability matrix $\hat{\mat{P}}$ is reported in Table~\ref{tab:transition-matrix}.
+
+\begin{table}[ht]
+\centering
+\caption{Observed transition counts $n_{ij}$ (all entries not shown are zero).}
+\label{tab:transition-counts}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{l rrr rrr rrr r}
+\toprule
+\textbf{From $\backslash$ To} &
+  $S_{11}$ & $S_{12}$ & $S_{13}$ &
+  $S_{21}$ & $S_{22}$ & $S_{23}$ &
+  $S_{31}$ & $S_{32}$ & $S_{33}$ & \textbf{Total} \\
+\midrule
+$S_{11}$ & -- & -- & -- & 48 & 42 & -- & -- & -- & -- & 90  \\
+$S_{12}$ & -- & -- & -- & -- & 76 & -- & -- & -- & -- & 76  \\
+$S_{13}$ & -- & -- & -- & -- & 54 & 42 & -- & -- & -- & 96  \\
+$S_{21}$ & -- & -- & -- & -- & -- & -- & 27 & 20 & -- & 47  \\
+$S_{22}$ & -- & -- & -- & -- & -- & -- & -- & 161& -- & 161 \\
+$S_{23}$ & -- & -- & -- & -- & -- & -- & -- & 9  & 31 & 40  \\
+$S_{31}$ & 13 & 12 & -- & -- & -- & -- & 19 & -- & -- & 44  \\
+$S_{32}$ & 59 & 26 & 45 & -- & -- & -- & -- & 373& -- & 503 \\
+$S_{33}$ & 1  & 11 & 16 & -- & -- & -- & -- & -- & 38 & 66  \\
+\midrule
+\textbf{Total} & 73 & 49 & 61 & 48 & 172& 42 & 46 & 563& 69 & 1{,}123 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Estimated transition probability matrix $\hat{\mat{P}}$ (entries $<0.001$ shown as ``--'').}
+\label{tab:transition-matrix}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{l rrr rrr rrr}
+\toprule
+\textbf{From $\backslash$ To} &
+  $S_{11}$ & $S_{12}$ & $S_{13}$ &
+  $S_{21}$ & $S_{22}$ & $S_{23}$ &
+  $S_{31}$ & $S_{32}$ & $S_{33}$ \\
+\midrule
+$S_{11}$ & -- & -- & -- & 0.533 & 0.467 & -- & -- & -- & -- \\
+$S_{12}$ & -- & -- & -- & -- & 1.000 & -- & -- & -- & -- \\
+$S_{13}$ & -- & -- & -- & -- & 0.563 & 0.438 & -- & -- & -- \\
+$S_{21}$ & -- & -- & -- & -- & -- & -- & 0.574 & 0.426 & -- \\
+$S_{22}$ & -- & -- & -- & -- & -- & -- & -- & 1.000 & -- \\
+$S_{23}$ & -- & -- & -- & -- & -- & -- & -- & 0.225 & 0.775 \\
+$S_{31}$ & 0.295 & 0.273 & -- & -- & -- & -- & 0.432 & -- & -- \\
+$S_{32}$ & 0.117 & 0.052 & 0.089 & -- & -- & -- & -- & 0.742 & -- \\
+$S_{33}$ & 0.015 & 0.167 & 0.242 & -- & -- & -- & -- & -- & 0.576 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\medskip
+\noindent The block structure of $\hat{\mat{P}}$ is noteworthy:
+\begin{itemize}
+  \item $S_{1\bullet}$ states transition exclusively to $S_{2\bullet}$ states
+        (the sub-type of the destination may differ from that of the origin due
+        to the range-widening rule).
+  \item $S_{2\bullet}$ states transition exclusively to $S_{3\bullet}$ states.
+  \item $S_{3\bullet}$ states either self-loop (with probability 0.43--0.74)
+        or transition back to $S_{1\bullet}$ states (range broken).
+  \item No state returns directly from $S_{3\bullet}$ to $S_{2\bullet}$, nor
+        from $S_{2\bullet}$ to $S_{1\bullet}$.
+\end{itemize}
+
+This three-level block structure is fully determined by the Halachic definition
+of semi-fixed menstruation and is a \emph{model property}, not a data artefact.
+
+%% ─────────────────────────────────────────────────────────────────────────────
+\section{Results}
+\label{sec:results}
+%% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Stationary Distribution}
+\label{sec:stationary}
+
+\begin{proposition}[Existence and uniqueness of $\piv$]\label{prop:stationary}
+The Markov chain with transition matrix $\hat{\mat{P}}$ is irreducible and
+aperiodic. Therefore, a unique stationary distribution $\piv$ exists, satisfying
+$\piv \hat{\mat{P}} = \piv$ with $\pi_k > 0$ for all $k$.
+\end{proposition}
+
+\begin{proof}[Sketch]
+Irreducibility follows by inspection of Table~\ref{tab:transition-matrix}:
+every state communicates with every other state within at most four steps.
+Aperiodicity follows from the self-loops at $S_{31}$, $S_{32}$, and $S_{33}$
+(positive diagonal entries imply period 1).
+\end{proof}
+
+We compute $\piv$ as the normalised eigenvector of $\hat{\mat{P}}^\top$ corresponding
+to eigenvalue~1. The result is reported in Table~\ref{tab:stationary} and illustrated
+in Figure~\ref{fig:stationary}.
+
+\begin{table}[ht]
+\centering
+\caption{Stationary distribution $\piv$ of the 9-state Markov chain.}
+\label{tab:stationary}
+\begin{tabular}{l cc}
+\toprule
+\textbf{State} & \textbf{$\pi_k$} & \textbf{Percentage} \\
+\midrule
+$S_{11}$ & 0.07656 & 7.66\% \\
+$S_{12}$ & 0.04732 & 4.73\% \\
+$S_{13}$ & 0.06019 & 6.02\% \\
+\midrule
+$S_{21}$ & 0.04083 & 4.08\% \\
+$S_{22}$ & 0.11690 & 11.69\% \\
+$S_{23}$ & 0.02633 & 2.63\% \\
+\midrule
+$S_{31}$ & 0.04128 & 4.13\% \\
+$S_{32}$ & 0.54248 & 54.25\% \\
+$S_{33}$ & 0.04811 & 4.81\% \\
+\midrule
+\multicolumn{3}{l}{\emph{Aggregates:}} \\
+$\pi_{S_{31}} + \pi_{S_{33}}$ (favourable semi-fixed) & 0.08939 & 8.94\% \\
+$\pi_{S_{31}} + \pi_{S_{32}} + \pi_{S_{33}}$ (all semi-fixed) & 0.63186 & 63.19\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The dominant state is $S_{32}$ with $\pi_{S_{32}} \approx 54.25\%$: in the long run,
+more than half of all cycles are spent in a normal-range semi-fixed state, imposing
+full abstinence obligations on day~30 and the monthly Halachic date.
+The two favourable states together account for only $\pi_{S_{31}} + \pi_{S_{33}}
+\approx 8.94\%$ of long-run cycles.
+
+\begin{remark}
+The high stationary probability of $S_{32}$ is a direct consequence of its
+large self-loop probability ($\hat{p}_{S_{32}, S_{32}} = 0.742$): once a participant
+enters the normal-range semi-fixed state, she is likely to remain there for many
+consecutive cycles. This persistence is driven by the absorbing tendency of typical
+(28--32 day) cycle lengths in the NFP population.
+\end{remark}
+
+\subsubsection*{Monte Carlo Validation}
+
+To validate the analytical result, we simulated the chain for $T = 50{,}000$ steps
+and compared the empirical visit frequencies with $\piv$. The maximum absolute
+deviation was $3.6 \times 10^{-4}$, confirming convergence to the analytical
+stationary distribution.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/fig3_markov_chain_analysis.png}
+\caption{(a) Stationary distribution $\piv$ over the nine states (green = favourable
+semi-fixed; red = normal semi-fixed; grey = non-semi-fixed).
+(b) Estimated transition matrix $\hat{\mat{P}}$ as a heatmap.
+(c) Kernel density estimates of cycle lengths for the three semi-fixed client groups.
+(d) Long-run cycle state distribution (favourable vs.\ normal semi-fixed vs.\ non-semi-fixed).}
+\label{fig:stationary}
+\end{figure}
+
+\subsection{Population Heterogeneity: Group Analysis}
+\label{sec:groups}
+
+We partition clients into three groups based on the highest-priority semi-fixed
+sub-type they entered during observation:
+\begin{itemize}
+  \item \textbf{Group $G_{31}$}: clients who entered $S_{31}$ at least once
+        ($n = 16$ clients, $N_{31} = 243$ cycles);
+  \item \textbf{Group $G_{33}$}: clients who entered $S_{33}$ at least once
+        and are not in $G_{31}$ ($n = 24$ clients, $N_{33} = 304$ cycles);
+  \item \textbf{Group $G_{32}$}: remaining clients, i.e., those whose semi-fixed
+        cycles were always in $S_{32}$ ($n = 58$ clients, $N_{32} = 674$ cycles).
+\end{itemize}
+
+Descriptive statistics per group are shown in Table~\ref{tab:groups}. The clear
+stratification in mean cycle length—$G_{31}$ clients have short cycles,
+$G_{32}$ have normal cycles, and $G_{33}$ have long cycles—is consistent with
+the state definitions.
+
+\begin{table}[ht]
+\centering
+\caption{Descriptive statistics of Halachic cycle length $\tilde{L}$ by group
+         (Halachic convention, $\tilde{L} = L+1$).}
+\label{tab:groups}
+\begin{tabular}{l ccccc}
+\toprule
+\textbf{Group} & \textbf{$n$ (clients)} & \textbf{$N$ (cycles)} &
+  \textbf{Mean} & \textbf{SD} & \textbf{Median} \\
+\midrule
+$G_{31}$ (short range) & 16 & 243 & 27.55 & 1.87 & 27.0 \\
+$G_{32}$ (normal range) & 58 & 674 & 30.13 & 3.41 & 30.0 \\
+$G_{33}$ (long range)  & 24 & 304 & 33.85 & 4.48 & 33.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Hypothesis Testing}
+\label{sec:hypotheses}
+
+\subsubsection*{Normality}
+Shapiro-Wilk tests on the cycle-length distributions of each group all
+reject normality at $\alpha = 0.05$ (Table~\ref{tab:normality}), motivating
+the use of non-parametric tests.
+
+\begin{table}[ht]
+\centering
+\caption{Shapiro-Wilk normality test results for cycle lengths in each group.}
+\label{tab:normality}
+\begin{tabular}{l cc c}
+\toprule
+\textbf{Group} & \textbf{$W$} & \textbf{$p$-value} & \textbf{Normal?} \\
+\midrule
+$G_{31}$ & 0.936 & $8.80 \times 10^{-9}$  & No \\
+$G_{32}$ & 0.939 & $5.12 \times 10^{-16}$ & No \\
+$G_{33}$ & 0.944 & $2.22 \times 10^{-9}$  & No \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection*{Homogeneity of Variances}
+Levene's test rejects equality of variances across groups
+($F = 40.48$, $p = 9.58 \times 10^{-18}$), confirming heteroscedasticity.
+
+\subsubsection*{Kruskal-Wallis Test}
+The non-parametric Kruskal-Wallis test strongly rejects the null hypothesis
+of equal medians across the three groups:
+\[
+  H = 386.03, \quad p = 1.50 \times 10^{-84}.
+\]
+
+\subsubsection*{Post-hoc Pairwise Comparisons}
+Dunn's pairwise Kruskal-Wallis tests with Bonferroni correction (three comparisons,
+$\alpha_{\text{adj}} = 0.05/3 \approx 0.017$) confirm that all three pairs differ
+significantly (Table~\ref{tab:dunn}).
+
+\begin{table}[ht]
+\centering
+\caption{Bonferroni-corrected Dunn pairwise test results.
+         All comparisons are significant at $\alpha_{\text{adj}} = 0.017$.}
+\label{tab:dunn}
+\begin{tabular}{l cc}
+\toprule
+\textbf{Comparison} & \textbf{$H$} & \textbf{Adjusted $p$-value} \\
+\midrule
+$G_{31}$ vs $G_{32}$ & 146.48 & $3.05 \times 10^{-33}$ \\
+$G_{31}$ vs $G_{33}$ & 306.19 & $4.42 \times 10^{-68}$ \\
+$G_{32}$ vs $G_{33}$ & 177.49 & $5.14 \times 10^{-40}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sub-Chain Analysis}
+\label{sec:subchain}
+
+We re-estimate the transition matrix and stationary distribution separately within
+each group's cycle sequences. These \emph{group-conditioned sub-chains} answer the
+question: for a woman whose cycle lengths characteristically place her in group
+$G_k$, what fraction of her long-run cycles will be spent in a favourable semi-fixed
+state?
+
+\subsubsection*{Group $G_{31}$}
+The $G_{31}$ sub-chain involves states $\{S_{11}, S_{12}, S_{13},
+S_{21}, S_{22}, S_{31}, S_{32}\}$ (state $S_{33}$ never arises in this group by construction).
+The stationary probability of the favourable state is
+\[
+  \pi^{(31)}_{S_{31}} \approx 18.6\%,
+\]
+more than \emph{four times} the population-level value of $4.1\%$.
+
+\subsubsection*{Group $G_{33}$}
+Similarly, the $G_{33}$ sub-chain yields
+\[
+  \pi^{(33)}_{S_{33}} \approx 17.1\%,
+\]
+approximately \emph{three and a half times} the population-level value of $4.8\%$.
+
+\subsubsection*{Interpretation}
+The population-level stationary distribution $\piv$ provides a global summary, but
+substantially underestimates the favourable-state probability for clients with
+short or long cycle patterns. Personalised Halachic guidance that leverages a
+woman's individual cycle-length profile could therefore predict her semi-fixed
+sub-type with far greater accuracy than a population-average model.
+
+%% ─────────────────────────────────────────────────────────────────────────────
+\section{Discussion}
+\label{sec:discussion}
+%% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Probabilistic Interpretation}
+
+The main finding — that $\approx 63\%$ of cycles lie in some semi-fixed state
+in the long run, with $\approx 54\%$ specifically in $S_{32}$ — implies that the
+semi-fixed regime is the \emph{default} operating mode of the menstrual cycle in
+an NFP-charting population. Far from being a rare special case, semi-fixed
+menstruation is the norm. The Halachic obligations it entails (pre-emptive
+abstinence on day~30 and on the monthly date) therefore apply to the majority
+of cycles for most women.
+
+The finding that only $\approx 8.9\%$ of long-run cycles are in truly favourable
+semi-fixed states ($S_{31}$ or $S_{33}$, where no additional obligations apply)
+underscores the importance of individual cycle-length profiling: a short-cycle
+woman (mean $\tilde{L} \approx 27.6$) has nearly a 1-in-5 chance of being in
+the favourable $S_{31}$ state, while the population average suggests only 1-in-11.
+
+\subsection{Comparison with Prior Work}
+
+Prior work by the present author introduced Markov chain models for \haflaga{}
+fixed menstruation \citep{Ross2024markov} and permutation tests for fixed-pattern
+frequencies \citep{Ross2023stat}. The present model extends this framework to the
+more prevalent semi-fixed case, with a richer state space (nine vs.\ two states)
+and the additional dimension of sub-type heterogeneity.
+
+Compared to the cycle-length forecasting literature
+\citep{Guo2006, Symul2019, Bull2019}, our model is not predictive in the
+time-series sense (we do not forecast the next cycle length); rather, it is
+characterisational: we describe the long-run occupancy distribution over
+Halachically meaningful states. The two approaches are complementary.
+
+\subsection{Limitations}
+
+\begin{enumerate}
+  \item \textbf{Dataset size.} The analysis dataset comprises 98 clients and
+        1{,}221 cycles after exclusions. While sufficient for stable transition
+        matrix estimation on the major arcs, some transitions (especially those
+        entering $S_{11}$ from $S_{33}$ and $S_{23}$ self-loops) have low counts
+        and should be interpreted cautiously.
+
+  \item \textbf{Population specificity.} The NFP dataset consists predominantly of
+        women who chart their cycles for religious or family-planning purposes;
+        this may introduce selection bias relative to the general population.
+
+  \item \textbf{Stationarity assumption.} We assume cycle-length distributions are
+        stationary over time within each participant. Systematic within-woman trends
+        (due to age, parity, or hormonal changes) are not modelled.
+
+  \item \textbf{Range sub-type boundaries.} The thresholds $\theta_{\text{short}} = 29$
+        and $\theta_{\text{long}} = 31$ are determined by Halachic rules; a data-driven
+        approach might choose different boundaries and yield a different stationary
+        distribution.
+\end{enumerate}
+
+%% ─────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+\label{sec:conclusion}
+%% ─────────────────────────────────────────────────────────────────────────────
+
+We have introduced a nine-state Markov chain model for the dynamics of semi-fixed
+menstruation in Halachic law and derived its unique stationary distribution from
+an empirical NFP dataset. The key results are:
+
+\begin{enumerate}
+  \item In the long run, \textbf{63.2\%} of menstrual cycles lie in a semi-fixed
+        state, confirming that this is the dominant mode of the cycle.
+  \item Of these, \textbf{8.94\%} are in favourable semi-fixed states ($S_{31}$
+        or $S_{33}$) where no additional abstinence obligations arise — the
+        remainder ($S_{32}$, $\approx 54.2\%$) carry full Halachic obligations.
+  \item Clients stratify naturally into three groups with significantly different
+        cycle-length distributions (Kruskal-Wallis $H = 386.03$,
+        $p < 10^{-84}$), and group-specific sub-chains show that short-cycle
+        ($G_{31}$) and long-cycle ($G_{33}$) women spend $\approx 18.6\%$
+        and $\approx 17.1\%$ of their cycles in their respective favourable
+        states — far above the population average.
+\end{enumerate}
+
+These results provide a rigorous probabilistic foundation for Halachic guidance
+on semi-fixed menstruation and demonstrate that personalised, cycle-length-aware
+models outperform population-average predictions. Future work will incorporate
+Bayesian updating of the transition matrix from an individual's observed cycle
+history, enabling real-time personalised predictions.
+
+%% ─────────────────────────────────────────────────────────────────────────────
+\section*{Author Contributions}
+
+D.R. conceived the study, designed the Markov chain model, performed all data
+analysis, and wrote the paper.
+
+\section*{Funding}
+
+This research received no external funding.
+
+\section*{Data Availability}
+
+The anonymised dataset and all analysis code (Jupyter notebooks) are available
+at \url{https://github.com/dvirross/PhD/tree/main/markov-chain-semi-fixed-menstruation}.
+
+\section*{Conflicts of Interest}
+
+The author declares no conflict of interest.
+
+%% ─────────────────────────────────────────────────────────────────────────────
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+%% ─────────────────────────────────────────────────────────────────────────────
+\end{document}
