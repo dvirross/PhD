@@ -2,7 +2,7 @@
 
 This repository contains PhD research based on menstrual-cycle data. Read the project README and the study's analysis plan, variable definitions, and data documentation before reviewing or changing any analysis.
 
-Follow the shared [AI-assisted research review protocol](https://github.com/dvirross/research-agents/blob/main/docs/ai-assisted-research-review.md). Assess the research question, target population, measurement definitions, design, and limits before auditing supplementary methods or code. Trace every reported result to its source data, analysis, and output; distinguish confirmed findings from hypotheses and prioritize by effect on the study's conclusions.
+Follow the shared [AI-assisted research review protocol](https://github.com/dvirross/research-agents/pull/7). Assess the research question, target population, measurement definitions, design, and limits before auditing supplementary methods or code. Trace every reported result to its source data, analysis, and output; distinguish confirmed findings from hypotheses and prioritize by effect on the study's conclusions.
 
 ## Health-data privacy
 
